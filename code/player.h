@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 void init(struct Player *player) {
+	
 	// This function will be executed at the begin of each game, only once.
 }
 
@@ -23,9 +24,15 @@ struct Point walk(struct Player *player) {
 	// }
 	// This function will be executed in each round.
 	for (int i = 0; i < 4; i++) {
+		printf("pos %d %d", player->your_posx, player->your_posy);
 		int dx = player->your_posx + step[i][0], dy = player->your_posy + step[i][1];
 		if (dx >= 0 && dx < player->row_cnt && dy >= 0 && dy < player->col_cnt && (player->mat[dx][dy] == '.' || player->mat[dx][dy] == 'o' || player->mat[dx][dy] == 'O')) {
-			return initPoint(dx, dy);
+			for (int j = 0; j < 4; j++){
+				int dx2 = dx + step[i][0], dy2 = dy + step[i][1];
+				if (player->mat[dx2][dy2] == '.' || player->mat[dx2][dy2] == 'o' || player->mat[dx2][dy2] == 'O'){
+					return initPoint(dx, dy);
+				}
+			}
 		}
 	}
 	return initPoint(player->your_posx, player->your_posy);
