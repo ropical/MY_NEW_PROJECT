@@ -8,6 +8,7 @@
 #include <string.h>
 #include "../include/playerbase.h"
 #include <stdio.h>
+#include <stdbool.h>
 
 void init(struct Player *player) {
 	
