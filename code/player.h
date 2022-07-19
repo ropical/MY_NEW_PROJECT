@@ -37,6 +37,19 @@ void init_weight_map(struct Player *player, int **weight_map);
 //释放权重图空间 --[done][workable]
 void free_map(struct Player *player, int **weight_map);
 
+typedef struct node
+{
+	int x;
+	int y;
+}snake;
+
+typedef struct solution
+{
+	snake now;
+	struct solution* before;
+	int cost;
+} solution;
+
 void init(struct Player *player)
 {
 	// This function will be executed at the begin of each game, only once.
@@ -97,16 +110,16 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 	return false;
 }
 
-int direction_score(struct Player *player)
+int* direction_cost(struct Player *player)
 {
-	int direction[4] = {0};
+	int* direction_cost = (int*)malloc(sizeof(int) * 4);
 	for (int k = 0; k < 4; k++)
 	{
 		int dx = player->your_posx + step[k][0], dy = player->your_posy + step[k][1];
 		//绝对不能走 直接启用ver0.10
 		if (!judge_in_map(dx, dy, player) || !judge_real_move(dx, dy, player))
 		{
-			direction[k] = INFINITY;
+			direction_cost[k] = INFINITY;
 			continue;
 		}
 		for (int i = 0; i < player->row_cnt; i++)
@@ -115,46 +128,121 @@ int direction_score(struct Player *player)
 			{
 				if (player->mat[i][j] == 'o')
 				{
-					// printf("direction[%d] += %d ", k, abs(i - player->your_posx) + abs(j - player->your_posy));
+					// printf("direction_cost[%d] += %d ", k, abs(i - player->your_posx) + abs(j - player->your_posy));
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					direction[k] += manhattan_distance;
+					direction_cost[k] += manhattan_distance;
 				}
 				else if (player->mat[i][j] == 'O')
 				{
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					direction[k] += manhattan_distance;
+					direction_cost[k] += manhattan_distance;
 				}
 				// else if (player->mat[i][j] == '#' || player->mat[i][j] == '1' || player->mat[i][j] == '2')
 				// {
-				// 	 direction[k] += MANHATAN_DISTANCE(fabs(i - player->your_posx), fabs(j - player->your_posy));
+				// 	 direction_cost[k] += MANHATAN_DISTANCE(fabs(i - player->your_posx), fabs(j - player->your_posy));
 				// }
 			}
 		}
 	}
-	int min = INFINITY;
-	int next = -1;
-	for (int i = 0; i < 4; i++)
+	return direction_cost;
+}
+
+void quick_sort(solution* solution_queue[], int l, int r)
+{
+    if (l < r)
+    {
+        //Swap(s[l], s[(l + r) / 2]); //将中间的这个数和第一个数交换 参见注1
+        int i = l, j = r;
+		solution* temp = solution_queue[l];
+		int temp_cost = temp->cost;
+        while (i < j)
+        {
+            while(i < j && solution_queue[j]->cost >= temp_cost) // 从右向左找第一个小于x的数
+                j--;  
+            if(i < j) 
+                solution_queue[i++] = solution_queue[j];
+            
+            while(i < j && solution_queue[i]->cost < temp_cost) // 从左向右找第一个大于等于x的数
+                i++;  
+            if(i < j) 
+                solution_queue[j--] = solution_queue[i];
+        }
+        solution_queue[i] = temp;
+        quick_sort(solution_queue, l, i - 1); // 递归调用 
+        quick_sort(solution_queue, i + 1, r);
+    }
+}
+
+snake path[1000];
+int path_len = 0;
+int bfs(struct Player *player)
+{
+	solution* solution_queue[10000];
+	int queue_l = 0, queue_r = 1;
+	solution_queue[0] = (solution*)malloc(sizeof(solution));
+	solution_queue[0]->now.x = player->your_posx;
+	solution_queue[0]->now.y = player->your_posy;
+	solution_queue[0]->before = NULL;
+	solution_queue[0]->cost = 0;
+	while (queue_l < queue_r)
 	{
-		// printf("direction[%d] = %d ", i, direction[i]);
-		if (direction[i] < min)
+		solution* handle_solution = solution_queue[queue_l];
+		int solution_x = handle_solution->now.x;
+		int solution_y = handle_solution->now.y;
+		solution* solution_before = handle_solution->before;
+		int solution_cost = handle_solution->cost;
+		queue_l++;
+		printf("x,y,l,r:%d %d %d %d\n",solution_x,solution_y,queue_l,queue_r);
+		if (player->mat[solution_x][solution_y] == 'o' || player->mat[solution_x][solution_y] == 'O')
 		{
-			min = direction[i];
-			next = i;
+			int handle_x = solution_x;
+			int handle_y = solution_y;
+			int t = 0;
+			printf("out3");
+			while (handle_x != player->your_posx || handle_y != player->your_posy)
+			{
+				path[t++] = handle_solution->now;
+				handle_solution = handle_solution->before;
+				handle_x = handle_solution->now.x;
+				handle_y = handle_solution->now.y;
+			}
+			printf("out1");
+			return t;
 		}
+		int* direction_cost_response = direction_cost(player);
+		//!!!!!!!!!!!!!!!!!!!!!!!bug in direction_cost function
+		printf("1,2,3,4:%d %d %d %d\n",direction_cost_response[0],direction_cost_response[1],direction_cost_response[2],direction_cost_response[3]);
+		for (int i = 0; i < 4; i++)
+		{
+			int dx = solution_x + step[i][0];
+			int dy = solution_y + step[i][1];
+			if (judge_in_map(dx, dy, player))
+			{
+				solution_queue[queue_r] = (solution*)malloc(sizeof(solution));
+				solution_queue[queue_r]->now.x = dx;
+				solution_queue[queue_r]->now.y = dy;
+				solution_queue[queue_r]->before = handle_solution;
+				solution_queue[queue_r]->cost = solution_cost + direction_cost_response[i];
+				queue_r++;
+			}
+		}
+		free(direction_cost_response);
+		quick_sort(solution_queue, queue_l, queue_r - 1);
 	}
-	// printf("minscore:%d ",direction[next]);
-	return next;
+	printf("out2");
+	return -1;
 }
 
 struct Point walk(struct Player *player)
 {
 	// This function will be executed in each round.
-	// printf("pos %d %d\n", player->your_posx, player->your_posy);
-	int next = direction_score(player);
+	printf("pos %d %d\n", player->your_posx, player->your_posy);
 	// printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
-	if (next != -1)
+	if (path_len == 0)
 	{
-		return initPoint(player->your_posx + step[next][0], player->your_posy + step[next][1]);
+		path_len = bfs(player);
 	}
-	return initPoint(player->your_posx, player->your_posy);
+	path_len--;
+	// printf("pos %d %d\n", path[path_len].x, path[path_len].y);
+	return initPoint(path[path_len].x, path[path_len].y);
 }
