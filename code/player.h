@@ -8,38 +8,37 @@
 #include <string.h>
 #include "../include/playerbase.h"
 #include <stdio.h>
+#include <stdbool.h>
 
 void init(struct Player *player)
 {
 	// This function will be executed at the begin of each game, only once.
 }
 
-bool judge_move(int target_x, int target_y, struct Player *player) {
-	if(player->round_to_shrink == 1)
+bool judge_move(int target_x, int target_y, struct Player *player)
+{
+	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1' && player->mat[target_x][target_y] != '2')
 	{
-
-	}
-	if(player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1' && player->mat[target_x][target_y] != '2') {
 		return true;
 	}
 
 	return false;
 }
 
-
-bool judge_in_map(int target_x, int target_y, struct Player *player) {
+bool judge_in_map(int target_x, int target_y, struct Player *player)
+{
 	int wall = player->round / 40;
 	if (player->round_to_shrink == 1)
 	{
 		wall++;
 	}
-	if(target_x >= wall && target_x < player->row_cnt - wall && target_y >= wall && target_y < player->col_cnt - wall) {
+	if (target_x >= wall && target_x < player->row_cnt - wall && target_y >= wall && target_y < player->col_cnt - wall)
+	{
 		return true;
 	}
 
 	return false;
 }
-
 
 int step[4][2] = {0, 1, 0, -1, 1, 0, -1, 0};
 struct Point walk(struct Player *player)
