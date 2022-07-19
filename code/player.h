@@ -49,7 +49,6 @@ bool judge_move(int target_x, int target_y, struct Player *player)
 	{
 		return true;
 	}
-
 	return false;
 }
 
@@ -76,8 +75,9 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 		{
 			int step_judge_x = target_x + step[j][0];
 			int step_judge_y = target_y + step[j][1];
-			if (judge_in_map(step_judge_x, step_judge_x, player) && judge_move(step_judge_x, step_judge_x, player))
+			if (judge_in_map(step_judge_x, step_judge_y, player) && judge_move(step_judge_x, step_judge_y, player))
 			{
+
 				if (player->round_to_shrink == 2)
 				{
 					int wall = player->round / 40;
@@ -88,6 +88,7 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 				}
 				else
 				{
+					// printf("next still can move:%d %d\n", step_judge_x, step_judge_y);
 					return true;
 				}
 			}
@@ -134,14 +135,14 @@ int direction_score(struct Player *player)
 	int next = -1;
 	for (int i = 0; i < 4; i++)
 	{
-		printf("direction[%d] = %d ", i, direction[i]);
+		// printf("direction[%d] = %d ", i, direction[i]);
 		if (direction[i] < min)
 		{
 			min = direction[i];
 			next = i;
 		}
 	}
-	printf("minscore:%d ",direction[next]);
+	// printf("minscore:%d ",direction[next]);
 	return next;
 }
 
@@ -150,7 +151,7 @@ struct Point walk(struct Player *player)
 	// This function will be executed in each round.
 	// printf("pos %d %d\n", player->your_posx, player->your_posy);
 	int next = direction_score(player);
-	printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
+	// printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
 	if (next != -1)
 	{
 		return initPoint(player->your_posx + step[next][0], player->your_posy + step[next][1]);
