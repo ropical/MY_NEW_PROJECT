@@ -110,12 +110,12 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 	return false;
 }
 
-int* direction_cost(struct Player *player)
+int* direction_cost(int x, int y, struct Player *player)
 {
 	int* direction_cost = (int*)malloc(sizeof(int) * 4);
 	for (int k = 0; k < 4; k++)
 	{
-		int dx = player->your_posx + step[k][0], dy = player->your_posy + step[k][1];
+		int dx = x + step[k][0], dy = y + step[k][1];
 		//绝对不能走 直接启用ver0.10
 		if (!judge_in_map(dx, dy, player) || !judge_real_move(dx, dy, player))
 		{
@@ -192,13 +192,12 @@ int bfs(struct Player *player)
 		solution* solution_before = handle_solution->before;
 		int solution_cost = handle_solution->cost;
 		queue_l++;
-		printf("x,y,l,r:%d %d %d %d\n",solution_x,solution_y,queue_l,queue_r);
+		// printf("x,y,cost,l,r:%d %d %d %d %d\n",solution_x,solution_y,solution_cost,queue_l,queue_r);
 		if (player->mat[solution_x][solution_y] == 'o' || player->mat[solution_x][solution_y] == 'O')
 		{
 			int handle_x = solution_x;
 			int handle_y = solution_y;
 			int t = 0;
-			printf("out3");
 			while (handle_x != player->your_posx || handle_y != player->your_posy)
 			{
 				path[t++] = handle_solution->now;
@@ -206,17 +205,16 @@ int bfs(struct Player *player)
 				handle_x = handle_solution->now.x;
 				handle_y = handle_solution->now.y;
 			}
-			printf("out1");
+			// printf("bfs return:%d\n",t);
 			return t;
 		}
-		int* direction_cost_response = direction_cost(player);
-		//!!!!!!!!!!!!!!!!!!!!!!!bug in direction_cost function
-		printf("1,2,3,4:%d %d %d %d\n",direction_cost_response[0],direction_cost_response[1],direction_cost_response[2],direction_cost_response[3]);
+		int* direction_cost_response = direction_cost(solution_x, solution_y, player);
+		// printf("1,2,3,4:%d %d %d %d\n",direction_cost_response[0],direction_cost_response[1],direction_cost_response[2],direction_cost_response[3]);
 		for (int i = 0; i < 4; i++)
 		{
 			int dx = solution_x + step[i][0];
 			int dy = solution_y + step[i][1];
-			if (judge_in_map(dx, dy, player))
+			if (judge_in_map(dx, dy, player) && direction_cost_response[i] != INFINITY)
 			{
 				solution_queue[queue_r] = (solution*)malloc(sizeof(solution));
 				solution_queue[queue_r]->now.x = dx;
@@ -229,20 +227,19 @@ int bfs(struct Player *player)
 		free(direction_cost_response);
 		quick_sort(solution_queue, queue_l, queue_r - 1);
 	}
-	printf("out2");
 	return -1;
 }
 
 struct Point walk(struct Player *player)
 {
 	// This function will be executed in each round.
-	printf("pos %d %d\n", player->your_posx, player->your_posy);
-	// printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
+	// printf("pos %d %d %d\n", player->your_posx, player->your_posy, path_len);
 	if (path_len == 0)
 	{
 		path_len = bfs(player);
 	}
 	path_len--;
+	// if(path_len = -1) printf("fuck");
 	// printf("pos %d %d\n", path[path_len].x, path[path_len].y);
 	return initPoint(path[path_len].x, path[path_len].y);
 }
