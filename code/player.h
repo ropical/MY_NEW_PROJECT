@@ -14,19 +14,13 @@
 
 //--------------------------------------------------------宏定义------------------------------------------------------
 
-#define INFINITY 0x3f3f3f3f
+#define INF 0x3f3f3f3f
 #define MAX_SIZE 1000000
 
 //--------------------------------------------------------宏定义------------------------------------------------------
 
 
 //-----------------------------------------------------全局变量定义----------------------------------------------------
-
-int step[4][2] = {0, 1, 0, -1, 1, 0, -1, 0};
-
-int front, rear;
-
-struct node snake_body_queue[MAX_SIZE];
 
 typedef struct node
 {
@@ -40,6 +34,12 @@ typedef struct solution
 	int cost;
 	struct solution* before;
 } solution;
+
+int step[4][2] = {0, 1, 0, -1, 1, 0, -1, 0};
+
+int front, rear;
+
+struct node snake_body_queue[MAX_SIZE];
 
 //-----------------------------------------------------全局变量定义----------------------------------------------------
 
@@ -198,7 +198,7 @@ int* direction_cost(int x, int y, struct Player *player)
 		//绝对不能走 直接启用ver0.10
 		if (!judge_in_map(dx, dy, player) || !judge_real_move(dx, dy, player))
 		{
-			direction_cost[k] = INFINITY;
+			direction_cost[k] = INF;
 			continue;
 		}
 		for (int i = 0; i < player->row_cnt; i++)
@@ -293,7 +293,7 @@ int bfs(struct Player *player)
 		{
 			int dx = solution_x + step[i][0];
 			int dy = solution_y + step[i][1];
-			if (judge_in_map(dx, dy, player) && direction_cost_response[i] != INFINITY)
+			if (judge_in_map(dx, dy, player) && direction_cost_response[i] != INF)
 			{
 				solution_queue[queue_r] = (solution*)malloc(sizeof(solution));
 				solution_queue[queue_r]->now.x = dx;
