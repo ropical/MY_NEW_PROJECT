@@ -185,7 +185,7 @@ bool judge_real_move(int target_x, int target_y, struct Player *player) {
 
 int direction_score(struct Player *player)
 {
-	double direction[4] = {0};
+	double direction[4] = {INF, INF, INF, INF};
 	for (int k = 0; k < 4; k++)
 	{
 		int dx = player->your_posx + step[k][0], dy = player->your_posy + step[k][1];
@@ -203,13 +203,15 @@ int direction_score(struct Player *player)
 				{
 					// printf("direction[%d] += %d ", k, abs(i - player->your_posx) + abs(j - player->your_posy));
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					direction[k] += (int)sqrt(manhattan_distance);
+					if (manhattan_distance < direction[k]) direction[k] = manhattan_distance;
 				}
 				else if (player->mat[i][j] == 'O')
 				{
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					direction[k] += (int)sqrt(manhattan_distance) / 2;
+					if (manhattan_distance < direction[k]) direction[k] = manhattan_distance;
 				}
+				//
+				//
 				// else if (player->mat[i][j] == '#' || player->mat[i][j] == '1' || player->mat[i][j] == '2')
 				// {
 				// 	 direction[k] += MANHATAN_DISTANCE(fabs(i - player->your_posx), fabs(j - player->your_posy));
@@ -237,10 +239,19 @@ struct Point walk(struct Player *player)
 	// This function will be executed in each round.
 	// printf("pos %d %d\n", player->your_posx, player->your_posy);
 	int next = direction_score(player);
-	printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
+	// printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
 	if (next != -1)
 	{
 		return initPoint(player->your_posx + step[next][0], player->your_posy + step[next][1]);
+	}
+
+	for (int k = 0; k < 4; k++)
+	{
+		int dx = player->your_posx + step[k][0], dy = player->your_posy + step[k][1];
+		if (judge_in_map(dx, dy, player) && judge_move(dx, dy, player))
+		{
+			return initPoint(dx, dy);
+		}
 	}
 	return initPoint(player->your_posx, player->your_posy);
 }
