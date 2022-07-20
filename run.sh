@@ -5,7 +5,7 @@ set -o errexit
 
 WK_DIR=$(cd `dirname $0`; pwd)
 
-data_file="$WK_DIR/data/map1.txt"
+data_file="$WK_DIR/data/map3.txt"
 computer="$WK_DIR/bin/computer"
 player="$WK_DIR/bin/player"
 log_dir="$WK_DIR/log/judge"
