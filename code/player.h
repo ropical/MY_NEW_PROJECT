@@ -15,6 +15,12 @@
 //--------------------------------------------------------宏定义------------------------------------------------------
 
 #define MAX_SIZE 1000000
+#define DISTANCE_WEIGHT(X) ((10 * (X)) * (10 * (X)))
+#define KEY 4
+#define SINGLE_SNAKE_WEIGHT 4
+#define APPLE_WEIGHT 2
+#define DEFENCE_WEIGHT 4
+#define SINGLE_OPPONENT_WEIGHT 2
 
 //--------------------------------------------------------宏定义------------------------------------------------------
 
@@ -35,11 +41,8 @@ typedef struct solution
 
 int step[4][2] = {0, 1, 0, -1, 1, 0, -1, 0};
 
-int front, rear;
-
-double INF = (double)0x3f3f3f3f;
-
-struct node snake_body_queue[MAX_SIZE];
+//权值赋值
+double INF = (double)(-0x3f3f3f3f);
 
 //-----------------------------------------------------全局变量定义----------------------------------------------------
 
@@ -49,13 +52,13 @@ struct node snake_body_queue[MAX_SIZE];
 void init(struct Player *player);
 
 //蛇的长度
-int snake_len(struct Player *player);
+int snake_len(struct Player *player, int flag);
 
 // bfs搜索最大连通块
 int maximum_connected_block(struct Player *player, int start_x, int start_y);
 
 // 判断是否在函数体内 --[done] [in_workable]
-bool judge_move(int target_x, int target_y, struct Player *player);
+bool judge_no_barrier(int target_x, int target_y, struct Player *player);
 
 // 是否在地图内 --[done] [workable]
 bool judge_in_map(int target_x, int target_y, struct Player *player);
@@ -76,31 +79,52 @@ struct Point walk(struct Player *player);
 void init(struct Player *player)
 {
 	// This function will be executed at the begin of each game, only once.
-	front = 0;
-	rear = 0;
-	struct node tmp = {player->your_posx, player->your_posy};
-	snake_body_queue[rear++] = tmp;
 }
 
-int snake_len(struct Player *player)
+bool judge_no_barrier(int target_x, int target_y, struct Player *player)
+{
+	//蛇尾可以走 需要修改 --[hang in]
+	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1')
+	{
+		return true;
+	}
+	return false;
+}
+
+int snake_len(struct Player *player, int flag)
 {
 	int cnt = 0;
-	for (int i = 0; i < player->row_cnt; i++)
+	if(flag)
 	{
-		for (int j = 0; j < player->col_cnt; j++)
+		for (int i = 0; i < player->row_cnt; i++)
 		{
-			if (player->mat[i][j] == '1')
+			for (int j = 0; j < player->col_cnt; j++)
 			{
-				cnt++;
+				if (player->mat[i][j] == '1')
+				{
+					cnt++;
+				}
 			}
 		}
+		return cnt;
+	} else {
+		for (int i = 0; i < player->row_cnt; i++)
+		{
+			for (int j = 0; j < player->col_cnt; j++)
+			{
+				if (player->mat[i][j] == '2')
+				{
+					cnt++;
+				}
+			}
+		}
+		return cnt;
 	}
-	return cnt;
 }
 
 int maximum_connected_block(struct Player *player, int start_x, int start_y)
 {
-	if (!judge_move(start_x, start_y, player))
+	if (!judge_no_barrier(start_x, start_y, player))
 	{
 		return 0;
 	}
@@ -129,8 +153,8 @@ int maximum_connected_block(struct Player *player, int start_x, int start_y)
 		{
 			int direction_x = now.x + step[i][0];
 			int direction_y = now.y + step[i][1];
-			if (!vis[direction_x][direction_y] && judge_in_map(direction_x, direction_y, player) && judge_move(direction_x, direction_y, player))
-			{ // --[bug] <judge_move()> 蛇尾可以走
+			if (!vis[direction_x][direction_y] && judge_in_map(direction_x, direction_y, player) && judge_no_barrier(direction_x, direction_y, player))  // --[bug] <judge_barrier()> 蛇尾可以走
+			{ 
 				vis[direction_x][direction_y] = 1;
 				struct node tmp = {direction_x, direction_y};
 				queue[rear++] = tmp;
@@ -139,16 +163,6 @@ int maximum_connected_block(struct Player *player, int start_x, int start_y)
 		}
 	}
 	return cnt;
-}
-
-bool judge_move(int target_x, int target_y, struct Player *player)
-{
-	//蛇尾可以走 需要修改 --[hang in]
-	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1' && player->mat[target_x][target_y] != '2')
-	{
-		return true;
-	}
-	return false;
 }
 
 bool judge_in_map(int target_x, int target_y, struct Player *player)
@@ -170,15 +184,16 @@ bool judge_in_map(int target_x, int target_y, struct Player *player)
 int dead_snake_x;
 int dead_snake_y;
 int dead_snake_block = 0;
+
 bool judge_real_move(int target_x, int target_y, struct Player *player)
 {
-	if (!judge_move(target_x, target_y, player))
+	if (!judge_no_barrier(target_x, target_y, player))
 	{
 		return false;
 	}
 	int target_connect_block = maximum_connected_block(player, target_x, target_y);
-	printf("x,y,block:%d %d %d\n",target_x,target_y,target_connect_block);
-	if (target_connect_block >= snake_len(player))
+	// printf("x,y,block:%d %d %d\n",target_x,target_y,target_connect_block);
+	if (target_connect_block >= snake_len(player, 1))
 	{
 		if (player->round_to_shrink == 2)
 		{
@@ -220,53 +235,46 @@ int direction_score(struct Player *player)
 			direction[k] = INF;
 			continue;
 		}
+
 		for (int i = 0; i < player->row_cnt; i++)
 		{
 			for (int j = 0; j < player->col_cnt; j++)
 			{
 				if (player->mat[i][j] == 'o')
 				{
-					// printf("direction[%d] += %d ", k, abs(i - player->your_posx) + abs(j - player->your_posy));
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					if (manhattan_distance < direction[k])
-						direction[k] = manhattan_distance;
+					direction[k] += (double)(KEY * snake_len(player, 1) * SINGLE_SNAKE_WEIGHT * APPLE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
 				}
 				else if (player->mat[i][j] == 'O')
 				{
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					if (manhattan_distance < direction[k])
-						direction[k] = manhattan_distance;
+					direction[k] += (double)(KEY * snake_len(player, 1) * DEFENCE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
 				}
-				//
-				//
-				// else if (player->mat[i][j] == '#' || player->mat[i][j] == '1' || player->mat[i][j] == '2')
-				// {
-				// 	 direction[k] += MANHATAN_DISTANCE(fabs(i - player->your_posx), fabs(j - player->your_posy));
-				// }
+				else if (player->mat[i][j] == '2') {
+					int manhattan_distance = abs(i - dx) + abs(j - dy);
+					direction[k] -= (double)(KEY * snake_len(player, 0) * SINGLE_OPPONENT_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
+				}
 			}
 		}
 	}
-	int min = INF;
+
+	double max = INF;
 	int next = -1;
 	for (int i = 0; i < 4; i++)
 	{
-		// printf("direction[%d] = %d ", i, direction[i]);
-		if (direction[i] < min)
+		if (direction[i] > max)
 		{
-			min = direction[i];
+			max = direction[i];
 			next = i;
 		}
 	}
-	// printf("minscore:%d ",direction[next]);
 	return next;
 }
 
 struct Point walk(struct Player *player)
 {
 	// This function will be executed in each round.
-	// printf("pos %d %d\n", player->your_posx, player->your_posy);
 	int next = direction_score(player);
-	// printf("pos %d %d %d\n", player->your_posx, player->your_posy, next);
 	if (next != -1)
 	{
 		return initPoint(player->your_posx + step[next][0], player->your_posy + step[next][1]);
