@@ -20,6 +20,7 @@
 #define SINGLE_SNAKE_WEIGHT 4
 #define APPLE_WEIGHT 2
 #define DEFENCE_WEIGHT 4
+#define SINGLE_OPPONENT_WEIGHT 2
 
 //--------------------------------------------------------宏定义------------------------------------------------------
 
@@ -40,12 +41,8 @@ typedef struct solution
 
 int step[4][2] = {0, 1, 0, -1, 1, 0, -1, 0};
 
-int front, rear;
-
 //权值赋值
 double INF = (double)(-0x3f3f3f3f);
-
-struct node snake_body_queue[MAX_SIZE];
 
 //-----------------------------------------------------全局变量定义----------------------------------------------------
 
@@ -55,7 +52,7 @@ struct node snake_body_queue[MAX_SIZE];
 void init(struct Player *player);
 
 //蛇的长度
-int snake_len(struct Player *player);
+int snake_len(struct Player *player, int flag);
 
 // bfs搜索最大连通块
 int maximum_connected_block(struct Player *player, int start_x, int start_y);
@@ -82,26 +79,37 @@ struct Point walk(struct Player *player);
 void init(struct Player *player)
 {
 	// This function will be executed at the begin of each game, only once.
-	front = 0;
-	rear = 0;
-	struct node tmp = {player->your_posx, player->your_posy};
-	snake_body_queue[rear++] = tmp;
 }
 
-int snake_len(struct Player *player)
+int snake_len(struct Player *player, int flag)
 {
 	int cnt = 0;
-	for (int i = 0; i < player->row_cnt; i++)
+	if(flag)
 	{
-		for (int j = 0; j < player->col_cnt; j++)
+		for (int i = 0; i < player->row_cnt; i++)
 		{
-			if (player->mat[i][j] == '1')
+			for (int j = 0; j < player->col_cnt; j++)
 			{
-				cnt++;
+				if (player->mat[i][j] == '1')
+				{
+					cnt++;
+				}
 			}
 		}
+		return cnt;
+	} else {
+		for (int i = 0; i < player->row_cnt; i++)
+		{
+			for (int j = 0; j < player->col_cnt; j++)
+			{
+				if (player->mat[i][j] == '2')
+				{
+					cnt++;
+				}
+			}
+		}
+		return cnt;
 	}
-	return cnt;
 }
 
 int maximum_connected_block(struct Player *player, int start_x, int start_y)
@@ -162,7 +170,7 @@ bool judge_in_map(int target_x, int target_y, struct Player *player)
 bool judge_barrier(int target_x, int target_y, struct Player *player)
 {
 	//蛇尾可以走 需要修改 --[hang in]
-	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1' && player->mat[target_x][target_y] != '2')
+	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1')
 	{
 		return true;
 	}
@@ -177,7 +185,7 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 		{
 			int step_judge_x = target_x + step[j][0];
 			int step_judge_y = target_y + step[j][1];
-			if (judge_in_map(step_judge_x, step_judge_y, player) && maximum_connected_block(player, step_judge_x, step_judge_y) > snake_len(player) && judge_barrier(step_judge_x, step_judge_y, player))
+			if (judge_in_map(step_judge_x, step_judge_y, player) && maximum_connected_block(player, step_judge_x, step_judge_y) > snake_len(player, 1) && judge_barrier(step_judge_x, step_judge_y, player))
 			{
 				if (player->round_to_shrink == 2)
 				{
@@ -217,12 +225,16 @@ int direction_score(struct Player *player)
 				if (player->mat[i][j] == 'o')
 				{
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					direction[k] += (double)(KEY * snake_len(player) * APPLE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
+					direction[k] += (double)(KEY * snake_len(player, 1) * SINGLE_SNAKE_WEIGHT * APPLE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
 				}
 				else if (player->mat[i][j] == 'O')
 				{
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
-					direction[k] += (double)(KEY * snake_len(player) * DEFENCE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
+					direction[k] += (double)(KEY * snake_len(player, 1) * DEFENCE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
+				}
+				else if (player->mat[i][j] == '2') {
+					int manhattan_distance = abs(i - dx) + abs(j - dy);
+					direction[k] -= (double)(KEY * snake_len(player, 0) * SINGLE_OPPONENT_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
 				}
 			}
 		}
