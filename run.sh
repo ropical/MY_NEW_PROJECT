@@ -5,7 +5,7 @@ set -o errexit
 
 WK_DIR=$(cd `dirname $0`; pwd)
 
-data_file="$WK_DIR/data/map2.txt"
+data_file="$WK_DIR/data/map.txt"
 computer="$WK_DIR/bin/computer"
 player="$WK_DIR/bin/player"
 log_dir="$WK_DIR/log/judge"
@@ -65,4 +65,5 @@ echo "[INFO] Game is running ..............."
 ./bin/judge --data_file="$data_file" --player_red="$computer" --player_blue="$player" --log_dir="$log_dir" --visible="$ok"
 echo "[INFO] The game is over"
 rm ./log/judge/*
+
 

@@ -32,12 +32,6 @@ typedef struct node
 	int y;
 } snake;
 
-typedef struct solution
-{
-	snake now;
-	int cost;
-	struct solution *before;
-} solution;
 
 int step[4][2] = {0, 1, 0, -1, 1, 0, -1, 0};
 
@@ -84,7 +78,7 @@ void init(struct Player *player)
 bool judge_no_barrier(int target_x, int target_y, struct Player *player)
 {
 	//蛇尾可以走 需要修改 --[hang in]
-	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1')
+	if (player->mat[target_x][target_y] != '#' && player->mat[target_x][target_y] != '1' && player->mat[target_x][target_y] != '2')
 	{
 		return true;
 	}
@@ -94,7 +88,7 @@ bool judge_no_barrier(int target_x, int target_y, struct Player *player)
 int snake_len(struct Player *player, int flag)
 {
 	int cnt = 0;
-	if(flag)
+	if (flag)
 	{
 		for (int i = 0; i < player->row_cnt; i++)
 		{
@@ -107,7 +101,9 @@ int snake_len(struct Player *player, int flag)
 			}
 		}
 		return cnt;
-	} else {
+	}
+	else
+	{
 		for (int i = 0; i < player->row_cnt; i++)
 		{
 			for (int j = 0; j < player->col_cnt; j++)
@@ -153,8 +149,8 @@ int maximum_connected_block(struct Player *player, int start_x, int start_y)
 		{
 			int direction_x = now.x + step[i][0];
 			int direction_y = now.y + step[i][1];
-			if (!vis[direction_x][direction_y] && judge_in_map(direction_x, direction_y, player) && judge_no_barrier(direction_x, direction_y, player))  // --[bug] <judge_barrier()> 蛇尾可以走
-			{ 
+			if (!vis[direction_x][direction_y] && judge_in_map(direction_x, direction_y, player) && judge_no_barrier(direction_x, direction_y, player)) // --[bug] <judge_barrier()> 蛇尾可以走
+			{
 				vis[direction_x][direction_y] = 1;
 				struct node tmp = {direction_x, direction_y};
 				queue[rear++] = tmp;
@@ -181,20 +177,34 @@ bool judge_in_map(int target_x, int target_y, struct Player *player)
 	return false;
 }
 
-int dead_snake_x;
-int dead_snake_y;
+int dead_snake_x = INF;
+int dead_snake_y = INF;
 int dead_snake_block = 0;
 
 bool judge_real_move(int target_x, int target_y, struct Player *player)
 {
+
 	if (!judge_no_barrier(target_x, target_y, player))
 	{
 		return false;
 	}
 	int target_connect_block = maximum_connected_block(player, target_x, target_y);
+
 	// printf("x,y,block:%d %d %d\n",target_x,target_y,target_connect_block);
 	if (target_connect_block >= snake_len(player, 1))
 	{
+		if (target_x == 7 && target_y == 6)
+		{
+			for (int i = 0; i < 10; i++)
+			{
+				for (int j = 0; j < 10; j++)
+				{
+					printf("%c", player->mat[i][j]);
+				}
+				printf("\n");
+			}
+			printf("bugbugbugbugbugbugbugbugbugbugbug%d\n", target_connect_block);
+		}
 		if (player->round_to_shrink == 2)
 		{
 			int wall = player->round / 40;
@@ -210,10 +220,10 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 	}
 	else
 	{
-		// printf("tar:%d %d block:%d snake_len:%d dead_snake_block:%d\n",target_x,target_y,target_connect_block, snake_len(player), dead_snake_block);
+		printf("tar:%d %d block:%d snake_len:%d dead_snake_block:%d\n", target_x, target_y, target_connect_block, snake_len(player, 1), dead_snake_block);
 		if (target_connect_block > dead_snake_block)
 		{
-			// printf("dead:%d %d tar:%d %d\n",dead_snake_x,dead_snake_y,target_x,target_y);
+			printf("dead:%d %d tar:%d %d\n", dead_snake_x, dead_snake_y, target_x, target_y);
 			dead_snake_x = target_x;
 			dead_snake_y = target_y;
 			dead_snake_block = target_connect_block;
@@ -224,14 +234,19 @@ bool judge_real_move(int target_x, int target_y, struct Player *player)
 
 int direction_score(struct Player *player)
 {
-	double direction[4] = {INF, INF, INF, INF};
+	double direction[4] = {0};
 	dead_snake_block = 0;
+
 	for (int k = 0; k < 4; k++)
 	{
 		int dx = player->your_posx + step[k][0], dy = player->your_posy + step[k][1];
 		//绝对不能走 直接启用ver0.10
 		if (!judge_in_map(dx, dy, player) || !judge_real_move(dx, dy, player))
 		{
+			if (player->your_posx == 7 && player->your_posy == 6)
+			{
+				printf("IN%d\n", k);
+			}
 			direction[k] = INF;
 			continue;
 		}
@@ -250,14 +265,15 @@ int direction_score(struct Player *player)
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
 					direction[k] += (double)(KEY * snake_len(player, 1) * DEFENCE_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
 				}
-				else if (player->mat[i][j] == '2') {
+				else if (player->mat[i][j] == '2')
+				{
 					int manhattan_distance = abs(i - dx) + abs(j - dy);
 					direction[k] -= (double)(KEY * snake_len(player, 0) * SINGLE_OPPONENT_WEIGHT) / (DISTANCE_WEIGHT(manhattan_distance));
 				}
 			}
 		}
 	}
-
+	
 	double max = INF;
 	int next = -1;
 	for (int i = 0; i < 4; i++)
@@ -274,6 +290,7 @@ int direction_score(struct Player *player)
 struct Point walk(struct Player *player)
 {
 	// This function will be executed in each round.
+	// printf("pos %d %d\n", player->your_posx, player->your_posy);
 	int next = direction_score(player);
 	if (next != -1)
 	{
