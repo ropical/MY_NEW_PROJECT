@@ -43,7 +43,4 @@ struct Player {
     int round_to_shrink;  // current round to shrink, 1 means shrinking next round
 };
 
-## 这是余昊的文件夹
-
-yh
 
